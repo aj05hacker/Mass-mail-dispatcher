@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MASS MAIL DISPATCHER</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: black;
+            color: azure;
+            border: rgb(229, 255, 0) solid 5px;
+            border-radius: 40px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #heading {
+            font-weight: bold;
+            font-size: 28px;
+            color: #8ab5cf;
+        }
+
+        label {
+            margin-top: 1em;
+        }
+
+        textarea {
+            resize: none;
+        }
+
+        #validEmails,
+        #invalidEmails {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #validEmails p,
+        #invalidEmails p {
+            margin-bottom: 0;
+        }
+
+        #validEmails .email,
+        #invalidEmails .email {
+            margin-bottom: 5px;
+        }
+    
+
+        /* Cursor animation */
+        @keyframes blink {
+        0% {
+            opacity: 0;
+        }
+        50% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+        }
+        }
+
+        .cursor {
+        display: inline-block;
+        width: 0.5em;
+        animation: blink 1s infinite;
+        }
+    </style>
+
+
+
+    <div class="container">
+        <h1 class="text-center" id="heading"><span id="typing-text"></span><span class="blink">|</span></h1>
+
+        <form method="post">
+            <div class="form-group">
+                <label for="senderEmail">From:</label>
+                <input type="email" class="form-control" id="senderEmail" name="senderEmail" required>
+            </div>
+
+            <div class="form-group">
+                <label for="subject">Subject:</label>
+                <textarea class="form-control" id="subject" name="subject" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="csvFile">CSV File:</label>
+                <input type="file" class="form-control-file" id="csvFile" name="csvFile" accept=".csv" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea class="form-control" id="message" name="message" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="emailjsUserID">EmailJS User ID:</label>
+                <input type="text" class="form-control" id="emailjsUserID" name="emailjsUserID" required value="ySnwicT-4kngh8UFr">
+            </div>
+
+            <div class="form-group">
+                <label for="emailjsServiceID">EmailJS Service ID:</label>
+                <input type="text" class="form-control" id="emailjsServiceID" name="emailjsServiceID" required value="service_yvsjaxb">
+            </div>
+
+            <div class="form-group">
+                <label for="emailjsTemplateID">EmailJS Template ID:</label>
+                <input type="text" class="form-control" id="emailjsTemplateID" name="emailjsTemplateID" required value="template_8abn9f9">
+            </div>
+
+
+            <button type="button" class="btn btn-primary" onclick="sendEmails()">Send Emails</button>
+        </form>
+
+        <div class="row mt-4">
+            <div class="col-sm-6">
+                <p style="color: #393E41;">Valid Emails: <span id="validEmailCount"></span></p>
+                <div id="validEmails">
+                    <p class="email"></p>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <p style="color: #393E41;">Invalid Emails: <span id="invalidEmailCount"></span></p>
+                <div id="invalidEmails">
+                    <p class="email"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com/dist/email.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+        function sendEmails() {
+            var senderEmail = $('#senderEmail').val().trim();
+            var subject = $('#subject').val().trim();
+            var message = $('#message').val().trim();
+            var emailjsUserID = $('#emailjsUserID').val().trim();
+            var emailjsServiceID = $('#emailjsServiceID').val().trim();
+            var emailjsTemplateID = $('#emailjsTemplateID').val().trim();
+
+            emailjs.init(emailjsUserID);
+
+            // Fetch the email addresses from the CSV file
+            var csvFile = document.getElementById('csvFile').files[0];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var csvData = e.target.result;
+                var lines = csvData.split("\n");
+                var validEmails = [];
+                var invalidEmails = [];
+
+                for (var i = 0; i < lines.length; i++) {
+                    var email = lines[i].trim();
+
+                    if (validateEmail(email)) {
+                        validEmails.push(email);
+                    } else {
+                        invalidEmails.push(email);
+                    }
+                }
+
+                displayEmails(validEmails, invalidEmails);
+                sendEmailsToValidEmails(validEmails, senderEmail, subject, message, emailjsServiceID, emailjsTemplateID);
+            };
+            reader.readAsText(csvFile);
+        }
+
+        function validateEmail(email) {
+            var regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return regex.test(email);
+        }
+
+        function displayEmails(validEmails, invalidEmails) {
+            var validEmailsDiv = $('#validEmails');
+            var invalidEmailsDiv = $('#invalidEmails');
+
+            validEmailsDiv.empty();
+            invalidEmailsDiv.empty();
+
+            for (var i = 0; i < validEmails.length; i++) {
+                validEmailsDiv.append('<p class="email">' + validEmails[i] + '</p>');
+            }
+
+            for (var j = 0; j < invalidEmails.length; j++) {
+                invalidEmailsDiv.append('<p class="email">' + invalidEmails[j] + '</p>');
+            }
+
+            $('#validEmailCount').text('(' + validEmails.length + ')');
+            $('#invalidEmailCount').text('(' + invalidEmails.length + ')');
+        }
+
+        function sendEmailsToValidEmails(validEmails, senderEmail, subject, message, emailjsServiceID, emailjsTemplateID) {
+            for (var j = 0; j < validEmails.length; j++) {
+                var templateParams = {
+                    to_name: validEmails[j],
+                    from_name: senderEmail,
+                    message: message,
+                    subject: subject
+                };
+
+                emailjs.send(emailjsServiceID, emailjsTemplateID, templateParams)
+                    .then(function(response) {
+                        console.log("SUCCESS", response);
+                    }, function(error) {
+                        console.log("FAILED", error);
+                    });
+            }
+
+            alert("Emails sent to valid email addresses.");
+        }
+
+
+
+
+
+
+
+        var phrases = [
+        "Mass mail dispatcher",
+        "Created by Abdul Hajees"
+    ]; // Phrases to type
+
+    var speed = 100; // Typing speed (milliseconds)
+    var eraseDelay = 1000; // Delay before erasing (milliseconds)
+    var pauseDelay = 2000; // Delay between phrases (milliseconds)
+
+    var index = 0;
+    var phaseIndex = 0;
+    var typingTextElement = document.getElementById("typing-text");
+
+    function typeNextPhrase() {
+        var phrase = phrases[phaseIndex];
+
+        if (index < phrase.length) {
+            typingTextElement.innerHTML += phrase.charAt(index);
+            index++;
+            setTimeout(typeNextPhrase, speed);
+        } else {
+            setTimeout(erasePhrase, eraseDelay);
+        }
+    }
+
+    function erasePhrase() {
+        if (index > 0) {
+            var phrase = phrases[phaseIndex];
+            typingTextElement.innerHTML = phrase.substring(0, index - 1);
+            index--;
+            setTimeout(erasePhrase, speed);
+        } else {
+            phaseIndex = (phaseIndex + 1) % phrases.length;
+            setTimeout(typeNextPhrase, pauseDelay);
+        }
+    }
+
+    // Start typing animation
+    typeNextPhrase();
+
+
+
+
+
+    
+    </script>
+
+
+<style>
+    .blink {
+      animation: blink 1s infinite;
+    }
+  
+    @keyframes blink {
+      0% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+  </style>
+</body>
+</html>
